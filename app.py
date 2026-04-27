@@ -2,8 +2,8 @@ import streamlit as st
 import os
 
 # 1. Page Configuration
-st.set_page_config(page_title="Personal Agent", page_icon="🤖")
-st.title("🤖 My Personal Agent")
+st.set_page_config(page_title="Agent JB", page_icon="🤖")
+st.title("JB")
 
 # 2. Safe Library Check (Prevents the app from breaking during setup)
 try:
