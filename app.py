@@ -1,69 +1,56 @@
 import streamlit as st
 import os
-import json
-from google.oauth2.credentials import Credentials
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import initialize_agent, AgentType
-from langchain_community.agent_toolkits.gmail.toolkit import GmailToolkit
-from langchain_community.tools.gmail.utils import build_resource_service
 
-st.set_page_config(page_title="Personal Email Agent", page_icon="📧")
-st.title("סוכן האימייל האישי שלי")
+# 1. Page Configuration
+st.set_page_config(page_title="Personal Agent", page_icon="🤖")
+st.title("🤖 My Personal Agent")
 
-# משיכת מפתח ג'מיני מהסודות של סטרימליט
-if "GEMINI_API_KEY" in st.secrets:
-    os.environ["GOOGLE_API_KEY"] = st.secrets["GEMINI_API_KEY"]
-else:
-    st.error("חסר מפתח API של ג'מיני בהגדרות הסודות.")
-    st.stop()
+# 2. Safe Library Check (Prevents the app from breaking during setup)
+try:
+    from langchain.agents import initialize_agent, AgentType
+    from langchain_community.agent_toolkits.gmail.toolkit import GmailToolkit
+    libraries_loaded = True
+except ImportError as e:
+    libraries_loaded = False
+    st.error(f"Setup in progress: Still installing background libraries... ({e})")
+    st.info("Please go to 'Manage app' -> '⋮' -> 'Reboot app' in Streamlit.")
 
-def initialize_gmail_agent():
-    # משיכת פרטי הגישה לג'ימייל מהסודות של סטרימליט
-    try:
-        creds_data = {
-            "token": st.secrets["GMAIL_TOKEN"],
-            "refresh_token": st.secrets["GMAIL_REFRESH_TOKEN"],
-            "token_uri": st.secrets["GMAIL_TOKEN_URI"],
-            "client_id": st.secrets["GMAIL_CLIENT_ID"],
-            "client_secret": st.secrets["GMAIL_CLIENT_SECRET"],
-            "scopes": ["https://www.googleapis.com/auth/gmail.modify"]
-        }
-        credentials = Credentials.from_authorized_user_info(creds_data)
-        api_resource = build_resource_service(credentials=credentials)
-        toolkit = GmailToolkit(api_resource=api_resource)
-        
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
-        
-        agent = initialize_agent(
-            tools=toolkit.get_tools(),
-            llm=llm,
-            agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
-            verbose=True
-        )
-        return agent
-    except Exception as e:
-        st.error(f"שגיאה בהתחברות ל-Gmail: {e}")
-        return None
+# 3. Check for API Keys
+gemini_key = st.secrets.get("GEMINI_API_KEY")
+gmail_token = st.secrets.get("GMAIL_TOKEN")
 
-if "agent" not in st.session_state:
-    with st.spinner("מתחבר ל-Gmail..."):
-        st.session_state.agent = initialize_gmail_agent()
+if not gemini_key and libraries_loaded:
+    st.warning("⚠️ Setup incomplete: Please add your API keys in Streamlit Secrets to activate the agent.")
 
+# 4. Initialize Chat History
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hi Roee! I'm your personal email agent. How can I help you today?"}
+    ]
 
+# 5. Render Existing Messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("מה תרצה שהסוכן יעשה?"):
+# 6. User Input & Chat Logic
+if prompt := st.chat_input("Type your message here..."):
+    # Show user message
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-
-    if st.session_state.agent:
-        with st.chat_message("assistant"):
-            with st.spinner("חושב ומבצע..."):
-                response = st.session_state.agent.run(prompt)
-                st.markdown(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+    
+    # Show assistant response
+    with st.chat_message("assistant"):
+        if not libraries_loaded:
+            response = "I can't respond yet. Waiting for libraries to install."
+            st.error(response)
+        elif not gemini_key:
+            response = "I'm currently offline. Please configure my API keys in Streamlit Secrets."
+            st.error(response)
+        else:
+            # Placeholder for the actual Agent logic
+            response = f"I received your request: '{prompt}'. (Full Gmail logic will run here once keys are set!)"
+            st.markdown(response)
+            
+        st.session_state.messages.append({"role": "assistant", "content": response})
