@@ -4,7 +4,7 @@ import json
 from google.oauth2.credentials import Credentials
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import initialize_agent, AgentType
-from langchain_community.agent_toolkits import GmailToolkit
+from langchain_community.agent_toolkits.gmail.toolkit import GmailToolkit
 from langchain_community.tools.gmail.utils import build_resource_service
 
 st.set_page_config(page_title="Personal Email Agent", page_icon="📧")
